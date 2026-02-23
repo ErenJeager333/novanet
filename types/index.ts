@@ -173,6 +173,7 @@ export interface Notification {
   is_read: boolean;
   read_at: string | null;
   is_deleted: boolean;
+  created_at: string;
   // Joined
   sender?: Profile;
 }
