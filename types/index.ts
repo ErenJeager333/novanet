@@ -152,6 +152,7 @@ export interface Message {
   file_url: string | null;
   file_type: 'image' | 'video' | 'file' | null;
   file_name: string | null;
+  voice_url: string | null;
   expires_at: string | null;
   is_read: boolean;
   read_at: string | null;

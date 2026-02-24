@@ -13,6 +13,7 @@ import {
 import toast from 'react-hot-toast';
 import CallModal from '@/components/messages/CallModal';
 import FileUpload from '@/components/messages/FileUpload';
+import VoiceRecorder from '@/components/messages/VoiceRecorder';
 import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
 
 interface Conversation {
@@ -166,6 +167,17 @@ export default function MessagesClient({ currentUserId, initialConversations }: 
     });
   }
 
+  async function sendVoice(url: string) {
+    if (!selectedConv) return;
+    await supabase.from('messages').insert({
+      conversation_id: selectedConv.id,
+      sender_id: currentUserId,
+      content: '',
+      voice_url: url,
+      is_read: false,
+    });
+  }
+
   function startCall(mode: 'audio' | 'video') {
     if (!selectedConv) return;
     const other = selectedConv.participants?.find(p => p.user.id !== currentUserId);
@@ -240,6 +252,14 @@ export default function MessagesClient({ currentUserId, initialConversations }: 
   );
 
   function renderMessageContent(msg: Message) {
+    // Message vocal
+    if (msg.voice_url) {
+      return (
+        <div className="flex items-center gap-2 py-1">
+          <audio controls src={msg.voice_url} className="h-8 w-40 sm:w-48" />
+        </div>
+      );
+    }
     if (msg.file_url && msg.file_type === 'image') {
       return (
         <div className="relative w-48 h-48 rounded-xl overflow-hidden mt-1">
@@ -445,7 +465,6 @@ export default function MessagesClient({ currentUserId, initialConversations }: 
 
       {/* Input */}
       <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-[#202c33] relative">
-
         {/* Emoji Picker */}
         {showEmojiPicker && (
           <div className="absolute bottom-16 left-3 z-50 shadow-2xl rounded-xl overflow-hidden">
@@ -492,16 +511,25 @@ export default function MessagesClient({ currentUserId, initialConversations }: 
           </button>
         </div>
 
-        <button
-          onClick={sendMessage}
-          disabled={loading || !newMsg.trim()}
-          className="w-10 h-10 flex items-center justify-center rounded-full bg-indigo-500 hover:bg-indigo-600 text-white transition-all disabled:opacity-40 shadow-md active:scale-95"
-        >
-          {loading
-            ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            : <Send size={18} />
-          }
-        </button>
+        {/* Vocal ou Envoyer */}
+        {newMsg.trim() ? (
+          <button
+            onClick={sendMessage}
+            disabled={loading}
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-indigo-500 hover:bg-indigo-600 text-white transition-all disabled:opacity-40 shadow-md active:scale-95"
+          >
+            {loading
+              ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              : <Send size={18} />
+            }
+          </button>
+        ) : (
+          <VoiceRecorder
+            currentUserId={currentUserId}
+            conversationId={selectedConv.id}
+            onVoiceSent={sendVoice}
+          />
+        )}
       </div>
     </div>
   ) : (

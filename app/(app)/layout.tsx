@@ -49,7 +49,7 @@ export default async function AppLayout({
           <Topbar profile={profile} />
 
           {/* Page */}
-          <main className="flex-1 px-3 sm:px-4 md:px-6 py-4 max-w-2xl w-full mx-auto pb-24 md:pb-6">
+          <main className="flex-1 w-full overflow-hidden">
             {children}
           </main>
 
