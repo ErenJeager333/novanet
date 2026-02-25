@@ -40,8 +40,8 @@ export default function Sidebar({ profile }: SidebarProps) {
   }
 
   return (
-    <aside className="hidden md:flex flex-col w-64 h-screen sticky top-0 border-r border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 px-3 py-5 gap-1 shrink-0">
-
+    
+    <aside className="hidden lg:flex flex-col w-64 h-screen sticky top-0 border-r border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 px-3 py-5 gap-1 shrink-0">
       {/* Logo */}
       <Link href="/feed" className="flex items-center gap-3 px-3 mb-5">
         <div className="w-9 h-9 rounded-xl bg-nova-gradient flex items-center justify-center text-white font-bold text-sm shadow-sm shrink-0">

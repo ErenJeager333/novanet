@@ -25,7 +25,7 @@ export default function Topbar({ profile }: TopbarProps) {
   return (
     <>
       {/* Top logo bar */}
-      <header className="md:hidden sticky top-0 z-40 glass border-b border-gray-100 dark:border-gray-800 px-4 h-14 flex items-center justify-between">
+      <header className="lg:hidden sticky top-0 z-40 glass border-b border-gray-100 dark:border-gray-800 px-4 h-14 flex items-center justify-between">
         <Link href="/feed" className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-xl bg-nova-gradient flex items-center justify-center text-white font-bold text-sm shadow-sm">
             N
@@ -48,7 +48,7 @@ export default function Topbar({ profile }: TopbarProps) {
       </header>
 
       {/* Bottom tab bar – mobile */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 glass border-t border-gray-100 dark:border-gray-800 flex pb-safe">
+      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 glass border-t border-gray-100 dark:border-gray-800 flex pb-safe">
         {mobileNav.map(({ href, icon: Icon, label }) => {
           const active = pathname.startsWith(href);
           return (
