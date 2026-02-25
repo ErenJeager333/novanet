@@ -256,7 +256,7 @@ export default function MessagesClient({ currentUserId, initialConversations }: 
     if (msg.voice_url) {
       return (
         <div className="flex items-center gap-2 py-1">
-          <audio controls src={msg.voice_url} className="h-8 w-40 sm:w-48" />
+          <audio controls src={msg.voice_url} className="h-10 w-full max-w-[220px]" style={{ minWidth: '180px' }} />
         </div>
       );
     }
