@@ -3,6 +3,7 @@ import { createServerClient } from '@/lib/supabase-server';
 import Sidebar from '@/components/layout/Sidebar';
 import Topbar from '@/components/layout/Topbar';
 import WellbeingProvider from '@/components/layout/WellbeingProvider';
+import OnboardingModal from '@/components/onboarding/OnboardingModal';
 
 export default async function AppLayout({
   children,
@@ -18,6 +19,12 @@ export default async function AppLayout({
     .select('*')
     .eq('id', user.id)
     .single();
+  const { data: suggestedUsers } = await supabase
+  .from('profiles')
+  .select('*')
+  .neq('id', user.id)
+  .order('followers_count', { ascending: false })
+  .limit(5);  
 
   let { data: settings } = await supabase
     .from('user_settings')
@@ -38,6 +45,9 @@ export default async function AppLayout({
   return (
     <WellbeingProvider settings={settings}>
       <div className="min-h-screen flex bg-gray-50 dark:bg-gray-950">
+        {profile && !profile.onboarding_completed && (
+        <OnboardingModal profile={profile} suggestedUsers={suggestedUsers ?? []} />
+        )}
 
         {/* Sidebar — desktop uniquement */}
         <Sidebar profile={profile} />
