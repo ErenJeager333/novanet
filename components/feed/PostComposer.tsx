@@ -6,10 +6,12 @@ import { containsBlockedWords, getStoryExpiryDate, cn } from '@/lib/utils';
 import type { Post, Visibility, PostType } from '@/types';
 import {
   Image as ImageIcon, Globe, Users, Lock,
-  X, Timer, Smile, MapPin, Send
+  X, Timer, Send
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { v4 as uuidv4 } from 'uuid';
+import PollCreator from '@/components/feed/PollCreator';
+
 
 interface PostComposerProps {
   currentUserId: string;
@@ -37,6 +39,7 @@ export default function PostComposer({ currentUserId, groupId, onPostCreated }: 
   const [mediaPreviews, setMediaPreviews] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [focused, setFocused] = useState(false);
+  const [poll, setPoll] = useState<{ question: string; options: string[] } | null>(null);
 
   const charsLeft = MAX_CHARS - content.length;
   const progress = (content.length / MAX_CHARS) * 100;
@@ -66,7 +69,9 @@ export default function PostComposer({ currentUserId, groupId, onPostCreated }: 
   }
 
   async function handleSubmit() {
-    if (!content.trim() && mediaFiles.length === 0) {
+    const hasPoll = poll && poll.question.trim() && poll.options.filter(o => o.trim()).length >= 2;
+
+    if (!content.trim() && mediaFiles.length === 0 && !hasPoll) {
       toast.error('Écris quelque chose ou ajoute une image !');
       return;
     }
@@ -91,6 +96,7 @@ export default function PostComposer({ currentUserId, groupId, onPostCreated }: 
 
       let postType: PostType = 'text';
       if (isStory) postType = 'story';
+      else if (hasPoll) postType = 'text';
       else if (mediaFiles.some(f => f.type.startsWith('video'))) postType = 'video';
       else if (mediaFiles.length > 0) postType = 'image';
 
@@ -110,13 +116,31 @@ export default function PostComposer({ currentUserId, groupId, onPostCreated }: 
 
       if (error) throw new Error(error.message);
 
-      toast.success(isStory ? '📖 Story publiée !' : '✅ Post publié !');
+      // Save poll if present
+      if (hasPoll && post) {
+        const { data: pollData } = await supabase
+          .from('polls')
+          .insert({ post_id: post.id, question: poll!.question.trim() })
+          .select()
+          .single();
+
+        if (pollData) {
+          await supabase.from('poll_options').insert(
+            poll!.options
+              .filter(o => o.trim())
+              .map(text => ({ poll_id: pollData.id, text: text.trim(), votes_count: 0 }))
+          );
+        }
+      }
+
+      toast.success(isStory ? '📖 Story publiée !' : hasPoll ? '📊 Sondage publié !' : '✅ Post publié !');
       onPostCreated({ ...post, is_liked: false });
       setContent('');
       setMediaFiles([]);
       setMediaPreviews([]);
       setIsStory(false);
       setFocused(false);
+      setPoll(null);
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Échec de la publication');
     } finally {
@@ -146,12 +170,16 @@ export default function PostComposer({ currentUserId, groupId, onPostCreated }: 
         />
       </div>
 
+      {/* Poll creator */}
+      {poll && (
+        <div className="px-4 pb-3">
+          <PollCreator onPollChange={setPoll} />
+        </div>
+      )}
+
       {/* Aperçu des médias */}
       {mediaPreviews.length > 0 && (
-        <div className={cn(
-          'px-4 pb-3 grid gap-2',
-          mediaPreviews.length === 1 ? 'grid-cols-1' : 'grid-cols-2'
-        )}>
+        <div className={cn('px-4 pb-3 grid gap-2', mediaPreviews.length === 1 ? 'grid-cols-1' : 'grid-cols-2')}>
           {mediaPreviews.map((url, i) => (
             <div key={i} className="relative aspect-video rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 group">
               {mediaFiles[i]?.type.startsWith('video') ? (
@@ -170,15 +198,12 @@ export default function PostComposer({ currentUserId, groupId, onPostCreated }: 
         </div>
       )}
 
-      {/* Barre de progression caractères */}
+      {/* Barre de progression */}
       {content.length > 0 && (
         <div className="px-4 pb-1">
           <div className="h-0.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
             <div
-              className={cn(
-                'h-full rounded-full transition-all duration-300',
-                charsLeft < 50 ? 'bg-red-400' : charsLeft < 100 ? 'bg-yellow-400' : 'bg-indigo-400'
-              )}
+              className={cn('h-full rounded-full transition-all duration-300', charsLeft < 50 ? 'bg-red-400' : charsLeft < 100 ? 'bg-yellow-400' : 'bg-indigo-400')}
               style={{ width: `${Math.min(progress, 100)}%` }}
             />
           </div>
@@ -186,7 +211,7 @@ export default function PostComposer({ currentUserId, groupId, onPostCreated }: 
       )}
 
       {/* Footer actions */}
-      <div className="flex items-center gap-1 px-3 py-2.5 border-t border-gray-50 dark:border-gray-800">
+      <div className="flex items-center gap-1 px-3 py-2.5 border-t border-gray-50 dark:border-gray-800 flex-wrap">
         {/* Image */}
         <button
           onClick={() => fileInputRef.current?.click()}
@@ -197,16 +222,14 @@ export default function PostComposer({ currentUserId, groupId, onPostCreated }: 
         </button>
         <input ref={fileInputRef} type="file" accept="image/*,video/*" multiple className="hidden" onChange={handleFileSelect} />
 
+        {/* Poll button */}
+        {!poll && <PollCreator onPollChange={setPoll} />}
+
         {/* Story toggle */}
         <button
           onClick={() => setIsStory(!isStory)}
-          className={cn(
-            'p-2 rounded-xl transition-all',
-            isStory
-              ? 'text-indigo-500 bg-indigo-50 dark:bg-indigo-950/30'
-              : 'text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-950/30'
-          )}
-          title="Publier en story (disparaît dans 24h)"
+          className={cn('p-2 rounded-xl transition-all', isStory ? 'text-indigo-500 bg-indigo-50 dark:bg-indigo-950/30' : 'text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-950/30')}
+          title="Publier en story"
         >
           <Timer size={18} />
         </button>
@@ -227,10 +250,7 @@ export default function PostComposer({ currentUserId, groupId, onPostCreated }: 
 
         {/* Compteur */}
         {content.length > 0 && (
-          <span className={cn(
-            'ml-auto text-xs font-medium tabular-nums',
-            charsLeft < 50 ? 'text-red-400' : 'text-gray-400'
-          )}>
+          <span className={cn('text-xs font-medium tabular-nums', charsLeft < 50 ? 'text-red-400' : 'text-gray-400')}>
             {charsLeft}
           </span>
         )}
@@ -238,22 +258,18 @@ export default function PostComposer({ currentUserId, groupId, onPostCreated }: 
         {/* Publier */}
         <button
           onClick={handleSubmit}
-          disabled={loading || (content.trim().length === 0 && mediaFiles.length === 0)}
+          disabled={loading || (content.trim().length === 0 && mediaFiles.length === 0 && !poll)}
           className={cn(
-            'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all',
-            content.length === 0 && mediaFiles.length === 0
-              ? 'ml-auto bg-gray-100 text-gray-400 dark:bg-gray-800 cursor-not-allowed'
-              : 'ml-auto bg-gradient-to-r from-indigo-500 to-pink-500 text-white hover:opacity-90 active:scale-95 shadow-sm hover:shadow-md'
+            'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ml-auto',
+            content.length === 0 && mediaFiles.length === 0 && !poll
+              ? 'bg-gray-100 text-gray-400 dark:bg-gray-800 cursor-not-allowed'
+              : 'bg-gradient-to-r from-indigo-500 to-pink-500 text-white hover:opacity-90 active:scale-95 shadow-sm hover:shadow-md'
           )}
         >
-          {loading ? (
-            <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-          ) : (
-            <>
-              <Send size={15} />
-              {isStory ? 'Story' : 'Publier'}
-            </>
-          )}
+          {loading
+            ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            : <><Send size={15} />{isStory ? 'Story' : 'Publier'}</>
+          }
         </button>
       </div>
     </div>

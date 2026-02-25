@@ -7,7 +7,6 @@ import { formatDate, formatCount, getAvatarFallback, cn } from '@/lib/utils';
 import type { Post } from '@/types';
 import CommentsSection from '@/components/feed/CommentsSection';
 import {
-  Heart,
   MessageCircle,
   Share2,
   MoreHorizontal,
@@ -18,6 +17,9 @@ import {
 } from 'lucide-react';
 import { createBrowserClient } from '@/lib/supabase-client';
 import toast from 'react-hot-toast';
+import HashtagText from '@/components/feed/HashtagText';
+import ReactionPicker from '@/components/feed/ReactionPicker';
+import PollDisplay from '@/components/feed/PollDisplay';
 
 interface PostCardProps {
   post: Post;
@@ -177,9 +179,7 @@ export default function PostCard({
       {/* ── Contenu texte ── */}
       {post.content && (
         <div className="px-4 pb-3">
-          <p className="text-sm leading-relaxed text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-words">
-            {post.content}
-          </p>
+          <HashtagText content={post.content} className="text-sm leading-relaxed text-gray-800 dark:text-gray-100 whitespace-pre-wrap" />
         </div>
       )}
 
@@ -215,29 +215,19 @@ export default function PostCard({
           )}
         </div>
       )}
+      {/* Sondage */}
+      <PollDisplay postId={post.id} currentUserId={currentUserId} />
 
       {/* ── Actions ── */}
       <div className="flex items-center gap-1 px-3 py-2 border-t border-gray-50 dark:border-gray-800">
         {/* Like */}
-        <button
-          onClick={handleLike}
-          className={cn(
-            'flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all',
-            post.is_liked
-              ? 'text-red-500 bg-red-50 dark:bg-red-950/30'
-              : 'text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30'
-          )}
-        >
-          <Heart
-            size={18}
-            className={cn(
-              'transition-all duration-300',
-              post.is_liked ? 'fill-current' : '',
-              likeAnimation ? 'scale-125' : 'scale-100'
-            )}
-          />
-          {showLikes && <span>{formatCount(post.likes_count)}</span>}
-        </button>
+        <ReactionPicker
+          postId={post.id}
+          currentUserId={currentUserId}
+          initialReaction={post.is_liked ? 'love' : null}
+          reactionsCount={post.is_liked ? { love: post.likes_count } : {}}
+          onReactionChange={(type) => onLikeToggle(post.id, type !== null ? false : true)}
+        />
 
         {/* Commentaires */}
         <button

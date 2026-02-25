@@ -120,3 +120,10 @@ export function formatDuration(seconds: number): string {
   if (m > 0) return `${m}m ${s}s`;
   return `${s}s`;
 }
+export function formatHashtags(content: string): { type: 'text' | 'hashtag'; value: string }[] {
+  const parts = content.split(/(#[a-zA-Z0-9_]+)/g);
+  return parts.map(part => ({
+    type: part.startsWith('#') ? 'hashtag' : 'text',
+    value: part,
+  }));
+}
